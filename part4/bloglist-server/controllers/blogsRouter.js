@@ -1,4 +1,5 @@
 const blogsRouter = require('express').Router()
+const { userExtractor } = require('../utils/middleware')
 require('express-async-errors')
 const Blog = require('../models/blog')
 
@@ -21,6 +22,8 @@ blogsRouter.get('/:id', async (request, response) => {
 
   const blog = await Blog.findById(request.params.id)
 
+  console.log('@blogRouter -> requesting blog ', blog)
+
   if ( ! blog ) { return response.status(404).end() }
 
   response.json(blog)
@@ -28,7 +31,7 @@ blogsRouter.get('/:id', async (request, response) => {
 })
 
 
-blogsRouter.delete('/:id', async (request, response) => {
+blogsRouter.delete('/:id', userExtractor, async (request, response) => {
 
   const blogEntry = await Blog.findById(request.params.id)
 
@@ -48,7 +51,7 @@ blogsRouter.delete('/:id', async (request, response) => {
 })
 
 
-blogsRouter.post('/', async (request, response) => {
+blogsRouter.post('/', userExtractor, async (request, response) => {
 
   if ( ! request.body.title ) { return response.status(400).send('missing title') }
   if ( ! request.body.url ) { return response.status(400).send('missing url') }
@@ -80,14 +83,32 @@ blogsRouter.post('/', async (request, response) => {
 
 blogsRouter.put('/:id', async (request, response) => {
 
-  const updatedLikes = request.body.likes;
+  const updatedBlogData = request.body
 
-  const updatedEntry = await Blog.findByIdAndUpdate( 
+  const updatedEntry = { ...updatedBlogData, user: updatedBlogData.user.id }
+
+  await Blog.findByIdAndUpdate( 
       request.params.id, 
-      { $set: { likes: updatedLikes } }, 
+      updatedEntry, 
       { new: true } )
 
   response.status(200).end()
+
+})
+
+blogsRouter.post('/:id/comments', async (request, response) => {
+
+  const comment = request.body.comment
+
+  const blog = await Blog.findById(request.params.id)
+  console.log('@blogsRouter -> requested blog: ', blog)
+
+  blog.comments = blog.comments.concat(comment)
+  const savedBlog = await blog.save()
+
+  if ( ! blog ) { return response.status(404).end() }
+
+  response.status(201).json(savedBlog) 
 
 })
 
