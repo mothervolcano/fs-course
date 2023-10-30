@@ -1,5 +1,5 @@
 const config = require("./utils/config");
-const jwt = require('jsonwebtoken')
+const jwt = require("jsonwebtoken");
 
 const { GraphQLError } = require("graphql");
 
@@ -27,7 +27,7 @@ mongoose
 
 // ---------------------------------------------------
 
-const User = require("./models/user")
+const User = require("./models/user");
 const Book = require("./models/book");
 const Author = require("./models/author");
 
@@ -65,7 +65,9 @@ const typeDefs = `
     bookCount: Int!
     authorCount: Int!
     allBooks(author: String, genre: String): [Book!]!
+    userBooks: [Book!]!
     allAuthors: [Author!]!
+    allGenres: [String!]!
   }
 
   type Mutation {
@@ -93,35 +95,50 @@ const typeDefs = `
 const resolvers = {
   Query: {
     me: (root, args, context) => {
-      return context.currentUser
+      return context.currentUser;
     },
     authorCount: async () => Author.collection.countDocuments(),
     bookCount: async () => Book.collection.countDocuments(),
     allBooks: async (root, args) => {
-      if (!args) {
-        return Book.find({});
-      }
-      // const byAuthor = args.author ? (book) => book.author === args.author : () => true
-      // const byGenre = args.genre ? (book) => book.genres.includes(args.genre) : () => true
-      // return books.filter(byAuthor).filter(byGenre)
-      return Book.find({});
+      const byAuthor =
+        args.author && args.author !== "" ? { author: args.author } : {};
+      const byGenre =
+        args.genre && args.genre !== "all genres" && args.genre !== ""
+          ? { genres: args.genre }
+          : {};
+
+      const filters = { ...byAuthor, ...byGenre };
+
+      return Book.find(filters);
     },
     allAuthors: async () => Author.find({}),
+    userBooks: async (root, args, context) => {
+      const userGenre = context.currentUser.favoriteGenre;
+      return Book.find({ genres: userGenre });
+    },
+    allGenres: async () => {
+      const books = await Book.find({});
+      const allGenres = Array.from(new Set(books.flatMap((b) => b.genres)));
+      return [...allGenres, "all genres"];
+    },
   },
   Book: {
     author: async (root) => {
-      return Author.findById(root.author)
+      return Author.findById(root.author);
     },
   },
   Author: {
     bookCount: async (root) => {
-      const authorBooks = await Book.find({ author: root._id })
+      const authorBooks = await Book.find({ author: root._id });
       return authorBooks.length;
     },
   },
   Mutation: {
     createUser: async (root, args) => {
-      const user = new User({ username: args.username, favoriteGenre: args.favoriteGenre });
+      const user = new User({
+        username: args.username,
+        favoriteGenre: args.favoriteGenre,
+      });
 
       return user.save().catch((error) => {
         throw new GraphQLError("Creating User Failed", {
@@ -152,9 +169,8 @@ const resolvers = {
       return { value: jwt.sign(userForToken, config.JWT_SECRET) };
     },
     addBook: async (root, args, context) => {
-      
-      if ( !context.currentUser ) {
-        throw new GraphQLError("No User Logged In")
+      if (!context.currentUser) {
+        throw new GraphQLError("No User Logged In");
       }
 
       const author = new Author({ name: args.author });
@@ -188,9 +204,8 @@ const resolvers = {
       return book;
     },
     editAuthor: async (root, args) => {
-
-      if ( !context.currentUser ) {
-        throw new GraphQLError("No User Logged In")
+      if (!context.currentUser) {
+        throw new GraphQLError("No User Logged In");
       }
 
       const author = await Author.findOne({ name: args.name });
@@ -198,7 +213,7 @@ const resolvers = {
         return null;
       }
 
-      author.born = args.year
+      author.born = args.year;
       return author.save();
     },
   },
@@ -216,7 +231,12 @@ startStandaloneServer(server, {
 
     if (auth && auth.startsWith("bearer ")) {
       const decodedToken = jwt.verify(auth.substring(7), config.JWT_SECRET);
-      const currentUser = await User.findById(decodedToken.id);
+      let currentUser;
+      try {
+        currentUser = await User.findById(decodedToken.id);
+      } catch (error) {
+        throw new GraphQLError("Failed to find user in database");
+      }
       return { currentUser };
     }
   },
