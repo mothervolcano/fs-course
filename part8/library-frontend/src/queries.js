@@ -111,3 +111,18 @@ export const EDIT_AUTHOR = gql`
 		}
 	}
 `
+
+export const BOOK_ADDED = gql`
+
+	subscription {
+		bookAdded {
+			id
+			title
+			author {
+				name
+			}
+			published
+			genres
+		}
+	}
+`
