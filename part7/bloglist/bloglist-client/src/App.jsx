@@ -1,8 +1,11 @@
 import "./index.css";
 import {
+  BrowserRouter as Router,
   Routes,
   Route,
   Link,
+  useNavigate,
+  useParams,
   useMatch,
 } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
@@ -20,17 +23,14 @@ import BlogView from "./components/BlogView";
 import UserListView from "./components/UserListView";
 import UserView from "./components/UserView";
 import blogService from "./services/blogs";
-import { Grid, Typography, Button, Divider } from "@mui/material";
+import { setSelectedBlog } from "./reducers/selectedBlog";
 
 const Menu = () => {
   const padding = {
     paddingRight: 5,
   };
   return (
-    <Grid
-      container
-      direction="row"
-    >
+    <div>
       <Link to="/" style={padding}>
         home
       </Link>
@@ -40,7 +40,7 @@ const Menu = () => {
       <Link to="/users" style={padding}>
         users
       </Link>
-    </Grid>
+    </div>
   );
 };
 
@@ -66,7 +66,9 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    dispatch(initBlogs());
+    if (user) {
+      dispatch(initBlogs());
+    }
   }, [user]);
 
   useEffect(() => {
@@ -123,11 +125,8 @@ const App = () => {
   return (
     <div className="container">
       <LoginForm />
-      <Divider sx={{ mt: 1.5, mb: 1 }}/>
 
       <Menu />
-
-      <Divider sx={{ mt: 2 }}/>
 
       <Notification
         message={{
@@ -146,7 +145,7 @@ const App = () => {
           path="/blogs"
           element={
             <>
-              <Typography variant="h4" sx={{ mt: 2}}>Blogs</Typography>
+              <h2>Blogs</h2>
               <BlogListView entries={blogEntries} />
             </>
           }
