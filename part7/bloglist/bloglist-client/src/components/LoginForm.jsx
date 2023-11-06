@@ -1,27 +1,30 @@
 import { useDispatch, useSelector } from "react-redux";
-import { Table, Form, Button } from "react-bootstrap";
-import { setUser } from "../reducers/user"
+// import { Table, Form, Button } from "react-bootstrap";
+import { setUser } from "../reducers/user";
 import { useField } from "../hooks/useField";
-import Togglable from './Togglable'
-import loginService from "../services/login"
-import blogService from '../services/blogs'
+import Togglable from "./Togglable";
+import loginService from "../services/login";
+import blogService from "../services/blogs";
+import { Grid, Box, Button, InputLabel, Input } from "@mui/material";
 
 const LoginForm = (props) => {
-  const {
-  } = props;
+  const {} = props;
 
-
-  const dispatch = useDispatch()
-  const user = useSelector(state => state.user)
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.user);
 
   const handleLogin = async (event) => {
     event.preventDefault();
-    console.log("logging in with", event.target.username.value, event.target.password.value);
+    console.log(
+      "logging in with",
+      event.target.username.value,
+      event.target.password.value,
+    );
 
     try {
       const user = await loginService.login({
-        username: event.target.username.value, 
-        password: event.target.password.value
+        username: event.target.username.value,
+        password: event.target.password.value,
       });
 
       console.log("@handleLogin: ", user.token);
@@ -30,12 +33,11 @@ const LoginForm = (props) => {
       blogService.setToken(user.token);
 
       dispatch(setUser(user));
-      event.target.username.value = ''
-      event.target.password.value = ''
+      event.target.username.value = "";
+      event.target.password.value = "";
 
       console.log("logged user: ", user);
     } catch (exception) {
-
       setTimeout(() => {
         dispatch(clearNotifications());
       }, 5000);
@@ -52,38 +54,39 @@ const LoginForm = (props) => {
 
       dispatch(setUser(null));
     } catch (exception) {
-
       setTimeout(() => {
         dispatch(clearNotifications());
       }, 5000);
     }
   };
 
-  const usernameField = useField('username', 'Username', 'text')
-  const passwordField = useField('password', 'Password', 'password')
+  const usernameField = useField("username", "Username", "text");
+  const passwordField = useField("password", "Password", "password");
 
   const form = () => (
     <Togglable buttonLabel="Log in">
       <form onSubmit={handleLogin}>
-        <div>
-          <label>username</label>
-          <input
-            {...usernameField}
-          />
-        </div>
-        <div>
-          <label>password</label>
-          <Form.Control
-            {...passwordField}
-          />
-        </div>
-        <Button id="login-button" type="submit" variant="primary">
-          login
-        </Button>
+        <Grid container direction="row" alignItems="center" sx={{ mt: 2, p: 2, border: "1px solid grey"}}>
+          <Box sx={{ mr: 3}}>
+            <InputLabel>username</InputLabel>
+            <input {...usernameField} />
+          </Box>
+          <Box sx={{ mr: 3}}>
+            <InputLabel>password</InputLabel>
+            <Input {...passwordField} />
+          </Box>
+          <Button
+            id="login-button"
+            type="submit"
+            variant="contained"
+            size="small"
+          >
+            login
+          </Button>
+        </Grid>
       </form>
     </Togglable>
-
-  )
+  );
 
   return (
     <>
